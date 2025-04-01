@@ -50,3 +50,10 @@ Aplicação web para criar "cápsulas do tempo" digitais que só podem ser abert
    ```bash  
    git clone https://github.com/G1ld0/time-capsule.git  
    cd time-capsule  
+
+
+Comandos para lembrar:
+
+   - source bin/activate - ativa a venv
+   - python app.py - executa o servidor
+   - Ctrl+C - para o servidor
