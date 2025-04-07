@@ -6,21 +6,17 @@ Aplicação web para criar "cápsulas do tempo" digitais que só podem ser abert
 
 ## Requisitos Funcionais (O QUE o sistema faz)
 - **RF1**	Cadastro/Login de Usuários	Permitir que usuários criem contas ou façam login (email/senha ou OAuth).
-- **RF2**	Criar Cápsulas do Tempo	Incluir mensagens, imagens, vídeos e definir data/local de liberação.
+- **RF2**	Criar Cápsulas do Tempo	Incluir mensagens e imagens e definir data/local de liberação.
 - **RF3**	Geolocalização	Validar se o usuário está no local correto para abrir a cápsula.
 - **RF4**	Temporizador	Liberar cápsulas após uma data específica.
 - **RF5**	Visualizar Cápsulas	Listar cápsulas criadas/recebidas, com filtros (data, local, tipo).
-- **RF6**	Notificações	Alertar usuários quando uma cápsula for liberada.
-- **RF7**	Compartilhamento	Permitir compartilhar cápsulas via link ou rede social.
-- **RF8**	Dashboard de Atividade	Mostrar estatísticas (ex: cápsulas criadas/abertas).
 
 ## Requisitos Não-Funcionais (COMO o sistema funciona)
 
 - **RNF1**	Performance	Tempo de carregamento < 2s para 90% das requisições.
 - **RNF2**	Escalabilidade	Suportar até 1.000 usuários simultâneos (para MVP).
-- **RNF3**	Segurança	Dados criptografados (TLS, hash de senhas).
+- **RNF3**	Segurança Dados criptografados (TLS, hash de senhas).
 - **RNF4**	Acessibilidade	WCAG AA para contrastes, leitores de tela e navegação por teclado.
-- **RNF5**	Compatibilidade	Funcionar em Chrome, Firefox, Safari e mobile (iOS/Android).
 - **RNF6**	Persistência de Dados	Garantir que cápsulas não sejam perdidas (Supabase/PostgreSQL).
 - **RNF7**	Deploy Contínuo	CI/CD automatizado (GitHub Actions + Vercel).
 
