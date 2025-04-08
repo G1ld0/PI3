@@ -10,6 +10,7 @@ from flask_jwt_extended import (
     create_access_token
 )
 import uuid
+from math import radians, sin, cos, sqrt, atan2
 
 # Carrega variáveis de ambiente do arquivo .env
 load_dotenv()
@@ -78,15 +79,13 @@ def create_capsule():
         "message": "Texto da cápsula",
         "image_base64": "data:image/jpeg;base64,...",
         "open_date": "2025-12-31T23:59:59",
-        "location": {"lat": -23.5505, "lng": -46.6333}
+        "lat": -23.5505,
+        "lng": -46.6333
     }
     """
     try:
         # Força a leitura como JSON mesmo sem header
         data = request.get_json(force=True, silent=True)
-        
-        # Debug: mostra os dados recebidos
-        print("\nDados recebidos:", data)
         
         if not data:
             return jsonify({"error": "Dados inválidos"}), 400
@@ -94,13 +93,9 @@ def create_capsule():
         current_user_id = get_jwt_identity()  # Obtém o ID do usuário do token (user_id)
 
         # Campos obrigatórios
-        required_fields = ["message", "image_base64", "open_date", "location"]
+        required_fields = ["message", "image_base64", "open_date", "lat", "lng"]
         if not all(field in data for field in required_fields):
             return jsonify({"error": f"Campos obrigatórios faltando: {required_fields}"}), 400
-
-        # Validação da localização
-        if not isinstance(data['location'], dict) or not all(k in data['location'] for k in ['lat', 'lng']):
-            return jsonify({"error": "Formato de localização inválido. Use {lat: number, lng: number}"}), 400
 
         # Processamento da imagem
         try:
@@ -151,7 +146,8 @@ def create_capsule():
             "message": data['message'],
             "image_url": image_url,
             "release_date": data['open_date'],
-            "location": f"SRID=4326;POINT({data['location']['lng']} {data['location']['lat']})",
+            "lat": data['lat'],
+            "lng": data['lng'],
             "user_id": current_user_id
         }).execute()
 
@@ -171,18 +167,6 @@ def create_capsule():
             "details": str(e)
         }), 500
 
-def parse_location(location_str):
-    """Converte 'SRID=4326;POINT(lng lat)' para {lat: number, lng: number} ou retorna None"""
-    if not location_str:
-        return None
-        
-    try:
-        point = location_str.split(';')[1].replace('POINT(', '').replace(')', '')
-        lng, lat = map(float, point.split())
-        return {"lat": lat, "lng": lng}
-    except Exception as e:
-        print(f"\nErro ao parsear localização: {location_str} - {str(e)}")
-        return None
 
 @app.route('/capsules', methods=['GET'])
 @jwt_required()
@@ -197,7 +181,8 @@ def list_capsules():
                 "message": "Texto",
                 "image_url": "url",
                 "release_date": "datetime",
-                "location": {"lat": -23.55, "lng": -46.63} ou null,
+                "lat": latitude,
+                "lng": longitude,
                 "user_id": "uuid",
                 "created_at": "datetime"
             }
@@ -206,35 +191,26 @@ def list_capsules():
     """
     try:
         user_id = get_jwt_identity()
-        # Consulta ao Supabase com tratamento mais robusto
-        response = supabase.table('capsules').select('*').eq('user_id', user_id).execute()
+        response = supabase.table('capsules').select('id,message,image_url,release_date,lat,lng,created_at').eq('user_id', get_jwt_identity()).execute()
         
-        # Verifica se há dados na resposta
-        if not hasattr(response, 'data') or not isinstance(response.data, list):
-            return jsonify({"capsules": []}), 200
-        
-        # Formata a resposta com tratamento seguro
         capsules = []
         for capsule in response.data:
             formatted_capsule = {
-                "id": capsule.get('id'),
-                "message": capsule.get('message'),
-                "image_url": capsule.get('image_url'),
-                "release_date": capsule.get('release_date'),
-                "location": parse_location(capsule.get('location')) if capsule.get('location') else None,
-                "user_id": capsule.get('user_id'),
-                "created_at": capsule.get('created_at')
+                "id": capsule['id'],
+                "message": capsule['message'],
+                "image_url": capsule['image_url'],
+                "release_date": capsule['release_date'],
+                "lat": capsule['lat'],
+                "lng": capsule['lng'],
+                "created_at": capsule['created_at']
             }
             capsules.append(formatted_capsule)
         
         return jsonify({"capsules": capsules}), 200
         
     except Exception as e:
-        print(f"\nErro ao listar cápsulas: {str(e)}")
-        return jsonify({
-            "error": "Erro ao processar a requisição",
-            "details": str(e)
-        }), 500
+        print(f"Erro ao listar cápsulas: {str(e)}")
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route('/capsules/<capsule_id>/check', methods=['GET'])
@@ -254,11 +230,11 @@ def check_capsule(capsule_id):
     try:
         # Obtem a localização do usuário através de uma argumento
         user_id = get_jwt_identity()
-        lat = request.args.get('lat', type=float)
-        lng = request.args.get('lng', type=float)
+        user_lat = request.args.get('lat', type=float)
+        user_lng = request.args.get('lng', type=float)
 
         # Busca a cápsula
-        response = supabase.table('capsules').select('*').eq('id', capsule_id).eq('user_id', user_id).execute()
+        response = supabase.table('capsules').select('release_date,lat,lng').eq('id', capsule_id).eq('user_id', user_id).execute()
         if not response.data:
             return jsonify({"error": "Cápsula não encontrada"}), 404
         capsule = response.data[0]
@@ -274,14 +250,14 @@ def check_capsule(capsule_id):
             }), 200
 
         # Verifica localização (se existir)
-        if capsule['location']:
-            distance = supabase.rpc('st_distance', {
-                "geom1": capsule['location'],
-                "geom2": f"SRID=4326;POINT({lng} {lat})",
-                "use_spheroid": False
-            }).execute().data[0]['st_distance']
+        if capsule['lat'] and capsule['lng']:
+            # Cálculo simples de distância em km (fórmula de Haversine)
+            distance = calculate_distance(
+                capsule['lat'], capsule['lng'],
+                user_lat, user_lng
+            )
             
-            if distance > 100:  # 100 metros de tolerância
+            if distance > 0.1:  # 0.1 km = 100 metros
                 return jsonify({
                     "can_open": False,
                     "reason": "Você não está no local correto"
@@ -291,6 +267,27 @@ def check_capsule(capsule_id):
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+def calculate_distance(lat1, lon1, lat2, lon2):
+    """
+    Calcula a distância em km entre dois pontos geográficos
+    usando a fórmula de Haversine
+    """
+    # Raio da Terra em km
+    R = 6371.0
+
+    # Converte coordenadas para radianos
+    lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
+
+    # Diferenças
+    dlat = lat2 - lat1
+    dlon = lon2 - lon1
+
+    # Fórmula de Haversine
+    a = sin(dlat / 2)**2 + cos(lat1) * cos(lat2) * sin(dlon / 2)**2
+    c = 2 * atan2(sqrt(a), sqrt(1 - a))
+
+    return R * c
 
 # Inicia o servidor Flask
 if __name__ == '__main__':
