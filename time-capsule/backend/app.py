@@ -11,12 +11,14 @@ from flask_jwt_extended import (
 )
 import uuid
 from math import radians, sin, cos, sqrt, atan2
+from flask_cors import CORS
 
 # Carrega variáveis de ambiente do arquivo .env
 load_dotenv()
 
 # Inicializa a aplicação Flask
 app = Flask(__name__)
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 # Configuração do JWT (JSON Web Tokens)
 # A chave secreta é usada para assinar os tokens
@@ -63,7 +65,10 @@ def login():
         
         # Cria um token JWT com o ID do usuário
         access_token = create_access_token(identity=auth_data.user.id)
-        return jsonify(access_token=access_token), 200
+        return jsonify({
+            "access_token": access_token,
+            "user_id": auth_data.user.id
+        }), 200
 
     except Exception as e:
         return jsonify({"error": str(e)}), 401
@@ -212,6 +217,27 @@ def list_capsules():
         print(f"Erro ao listar cápsulas: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
+
+@app.route('/capsules/<capsule_id>', methods=['GET'])
+@jwt_required()
+def get_capsule(capsule_id):
+    try:
+        user_id = get_jwt_identity()
+        
+        response = supabase.table('capsules')\
+                         .select('*')\
+                         .eq('id', capsule_id)\
+                         .eq('user_id', user_id)\
+                         .execute()
+        
+        if not response.data:
+            return jsonify({"error": "Cápsula não encontrada"}), 404
+            
+        return jsonify(response.data[0]), 200
+        
+    except Exception as e:
+        print(f"Erro ao buscar cápsula: {str(e)}")
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/capsules/<capsule_id>/check', methods=['GET'])
 @jwt_required()
