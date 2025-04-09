@@ -18,7 +18,14 @@ load_dotenv()
 
 # Inicializa a aplicação Flask
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "*"}})
+CORS(app, resources={
+    r"/*": {
+        "origins": [
+            "https://frontend-mauve-seven-90.vercel.app/",
+            "http://localhost:5173"
+        ]
+    }
+})
 
 # Configuração do JWT (JSON Web Tokens)
 # A chave secreta é usada para assinar os tokens
