@@ -317,4 +317,4 @@ def calculate_distance(lat1, lon1, lat2, lon2):
 
 # Inicia o servidor Flask
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=10000) #para uso no render

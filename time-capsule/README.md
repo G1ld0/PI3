@@ -53,3 +53,4 @@ Comandos para lembrar:
    - source bin/activate - ativa a venv
    - python app.py - executa o servidor
    - Ctrl+C - para o servidor
+   - pip freeze > requirements.txt
