@@ -21,7 +21,7 @@ app = Flask(__name__)
 CORS(app, resources={
     r"/*": {
         "origins": [
-            "https://frontend-mauve-seven-90.vercel.app/",
+            "https://time-capsule-frontend.vercel.app/",
             "http://localhost:5173"
         ]
     }
