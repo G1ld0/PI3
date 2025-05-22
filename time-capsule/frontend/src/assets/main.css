@@ -1,9 +1,13 @@
 @import './base.css';
 
+body {
+  background: #2c2d2d;
+}
+
 #app {
   max-width: 1280px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 1rem;
   font-weight: normal;
 }
 
@@ -23,13 +27,25 @@ a,
 
 @media (min-width: 1024px) {
   body {
-    display: flex;
-    place-items: center;
+    font-size: 1.2rem;
   }
 
   #app {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    padding: 0 2rem;
+    padding: 2rem;
   }
 }
+
+.nav-links {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+  overflow-x: auto;      
+  white-space: nowrap;   
+  max-width: 100vw; 
+}
+
+.nav-links::-webkit-scrollbar {
+  display: none;
+}
+
+

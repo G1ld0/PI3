@@ -1,6 +1,6 @@
 <template>
   <div class="create-container">
-    <h1>Criar Nova Cápsula do Tempo</h1>
+    <h1>Criar nova cápsula do tempo</h1>
     
     <form @submit.prevent="handleSubmit" class="capsule-form">
       <div class="form-group">
@@ -46,30 +46,31 @@
         <div v-if="useLocation" class="location-fields">
           <div class="form-group">
             <label for="lat">Latitude</label>
-            <input 
-              type="number" 
-              id="lat" 
-              v-model="lat" 
-              step="0.0000001"
-              placeholder="Ex: -23.5505"
-            >
+            <input
+              type="text"
+              id="lat"
+              :value="lat !== null ? lat.toFixed(10) : ''"
+              @input="lat = $event.target.value ? Number($event.target.value) : null"
+              placeholder="Ex: -23.5505000000"
+            />
           </div>
           <div class="form-group">
             <label for="lng">Longitude</label>
-            <input 
-              type="number" 
-              id="lng" 
-              v-model="lng" 
-              step="0.0000001"
-              placeholder="Ex: -46.6333"
-            >
+            <input
+              type="text"
+              id="lng"
+              :value="lng !== null ? lng.toFixed(10) : ''"
+              @input="lng = $event.target.value ? Number($event.target.value) : null"
+              placeholder="Ex: -46.6333000000"
+            />
           </div>
+          <div id="map" class="location-map"></div>
           <button 
             type="button" 
             @click="getCurrentLocation"
             class="location-btn"
           >
-            Usar Minha Localização Atual
+            Usar minha localização atual
           </button>
         </div>
       </div>
@@ -85,10 +86,12 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import 'leaflet/dist/leaflet.css'
+import { ref, onMounted, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import { useAuthStore } from '../stores/auth'
+import L from 'leaflet'
 
 const message = ref('')
 const imageFile = ref(null)
@@ -102,6 +105,43 @@ const error = ref(null)
 const success = ref(null)
 const router = useRouter()
 const authStore = useAuthStore()
+
+let map, marker
+
+watch(useLocation, async (val) => {
+  if (val) {
+    await nextTick() // Garante que o DOM já renderizou o #map
+    if (!map) {
+      map = L.map('map').setView([lat.value || -23.5505, lng.value || -46.6333], 13)
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+      }).addTo(map)
+      marker = L.marker([lat.value || -23.5505, lng.value || -46.6333], { draggable: true }).addTo(map)
+      marker.on('dragend', function(e) {
+        const pos = e.target.getLatLng()
+        lat.value = pos.lat
+        lng.value = pos.lng
+      })
+    } else {
+      map.invalidateSize()
+    }
+  } else {
+    // Opcional: destruir o mapa se quiser liberar memória
+    if (map) {
+      map.remove()
+      map = null
+      marker = null
+    }
+  }
+})
+
+// Atualiza o marcador se lat/lng mudarem manualmente
+watch([lat, lng], ([newLat, newLng]) => {
+  if (marker && map && newLat && newLng) {
+    marker.setLatLng([newLat, newLng])
+    map.setView([newLat, newLng])
+  }
+})
 
 // Converte a imagem para base64 para pré-visualização
 const handleImageUpload = (event) => {
@@ -192,7 +232,7 @@ const handleSubmit = async () => {
 }
 
 .capsule-form {
-  background: #fff;
+  background: #35495e;/*#fff;*/
   padding: 2rem;
   border-radius: 8px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
@@ -234,10 +274,26 @@ textarea {
 }
 
 .location-fields {
+  color: #2c3e50;
   margin-top: 1rem;
   padding: 1rem;
   background: #f5f5f5;
   border-radius: 4px;
+}
+
+.location-fields input[type="number"] {
+  color: #2c3e50;
+  background: #fff;
+  border: 1.5px solid #35495e;
+  font-weight: bold;
+}
+
+.location-map {
+  width: 100%;
+  height: 300px;
+  margin-top: 1rem;
+  border-radius: 8px;
+  z-index: 1;
 }
 
 .location-btn {

@@ -40,11 +40,11 @@
 h1 {
   font-size: 2.5rem;
   margin-bottom: 0.5rem;
+  color: white;
 }
 
 .subtitle {
   font-size: 1.2rem;
-  color: #666;
   margin-bottom: 2rem;
 }
 
@@ -76,7 +76,7 @@ h1 {
 }
 
 .feature {
-  background: white;
+  background:  #35495e;
   padding: 1.5rem;
   border-radius: 8px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
@@ -84,6 +84,6 @@ h1 {
 
 .feature h3 {
   margin-top: 0;
-  color: #2c3e50;
+  color: white;
 }
 </style>
