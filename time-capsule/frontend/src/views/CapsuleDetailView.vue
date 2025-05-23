@@ -1,6 +1,6 @@
 <template>
-  <div class="detail-container" v-if="capsule">
-    <div v-if="canView" class="capsule-detail">
+  <div class="detail-container" v-if="capsule" :key="canViewCapsule">
+    <div v-if="canViewCapsule" class="capsule-detail">
       <button @click="goBack" class="back-button">← Voltar</button>
       
       <h1>Cápsula de {{ formatDate(capsule.release_date) }}</h1>
@@ -25,36 +25,32 @@
     <div v-else class="access-denied">
       <div class="lock-icon">🔒</div>
       <h2>Cápsula Bloqueada</h2>
-      <p>Esta cápsula estará disponível em {{ formatDate(capsule.release_date) }}</p>
+      <p>Esta cápsula estará disponível a partir do dia {{ formatDate(capsule.release_date) }}</p>
       
       <div v-if="capsule.lat && capsule.lng" class="location-info">
-        <p>Você também precisará estar no local especificado para abrir</p>
+        <p>Você precisa estar no local especificado para abrir</p>
         <p class="coordinates">
           Latitude: {{ capsule.lat.toFixed(6) }}, 
           Longitude: {{ capsule.lng.toFixed(6) }}
         </p>
+        <LocationMap :lat="capsule.lat" :lng="capsule.lng" />
+        <div v-if="locationChecked && !locationAllowed">
+          <p style="color:#e74c3c; margin-top: 1rem;">Você não está no local correto para abrir esta cápsula.</p>
+        </div>
       </div>
       
       <button @click="goBack" class="back-button">Voltar para a lista</button>
     </div>
   </div>
-  
-  <div v-else-if="loading" class="loading">
-    Carregando...
-  </div>
-  
-  <div v-else class="error-state">
-    <p>Cápsula não encontrada</p>
-    <button @click="goBack" class="back-button">Voltar para a lista</button>
-  </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
 import { format, isAfter, parseISO } from 'date-fns'
 import { useAuthStore } from '../stores/auth'
+import LocationMap from '../components/LocationMap.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -63,6 +59,11 @@ const authStore = useAuthStore()
 const capsule = ref(null)
 const loading = ref(true)
 const canView = ref(false)
+
+const userLat = ref(null)
+const userLng = ref(null)
+const locationChecked = ref(false)
+const locationAllowed = ref(false)
 
 const formatDate = (dateString) => {
   return format(parseISO(dateString), 'dd/MM/yyyy HH:mm')
@@ -93,6 +94,50 @@ const checkAccess = async () => {
   }
 }
 
+function getDistanceFromLatLonInMeters(lat1, lon1, lat2, lon2) {
+  function deg2rad(deg) {
+    return deg * (Math.PI/180)
+  }
+  const R = 6371000 // Raio da Terra em metros
+  const dLat = deg2rad(lat2-lat1)
+  const dLon = deg2rad(lon2-lon1) // CORRIGIDO AQUI
+  const a =
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
+    Math.sin(dLon/2) * Math.sin(dLon/2)
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
+  return R * c
+}
+
+const checkIfAtLocation = () => {
+  if (capsule.value && capsule.value.lat && capsule.value.lng && userLat.value && userLng.value) {
+    const distance = getDistanceFromLatLonInMeters(
+      capsule.value.lat, capsule.value.lng, userLat.value, userLng.value
+    )
+    locationAllowed.value = distance < 50 // 50 metros de tolerância
+    locationChecked.value = true
+  }
+}
+
+const getUserLocation = () => {
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        userLat.value = position.coords.latitude
+        userLng.value = position.coords.longitude
+        checkIfAtLocation()
+      },
+      (err) => {
+        locationChecked.value = true
+        locationAllowed.value = false
+      }
+    )
+  } else {
+    locationChecked.value = true
+    locationAllowed.value = false
+  }
+}
+
 const fetchCapsule = async () => {
   try {
     const response = await axios.get(
@@ -113,8 +158,28 @@ const fetchCapsule = async () => {
   }
 }
 
-onMounted(() => {
-  fetchCapsule()
+const canViewCapsule = computed(() => {
+  if (!capsule.value?.lat || !capsule.value?.lng) return canView.value
+  return canView.value && locationAllowed.value
+})
+
+watch(
+  () => locationAllowed.value,
+  (allowed) => {
+    if (allowed && canView.value) {
+      // Força o Vue a reavaliar o v-if e mostrar a cápsula
+      // Não precisa fazer nada, pois a computed já depende dessas duas variáveis
+      // Mas se quiser garantir, pode forçar um refresh ou navegar para a mesma rota:
+      // router.replace(router.currentRoute.value.fullPath)
+    }
+  }
+)
+
+onMounted(async () => {
+  await fetchCapsule()
+  if (capsule.value && capsule.value.lat && capsule.value.lng) {
+    getUserLocation()
+  }
 })
 </script>
 

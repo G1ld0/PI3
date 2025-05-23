@@ -15,10 +15,10 @@
   --vt-c-divider-dark-1: rgba(84, 84, 84, 0.65);
   --vt-c-divider-dark-2: rgba(84, 84, 84, 0.48);
 
-  --vt-c-text-light-1: var(--vt-c-indigo);
+  --vt-c-text-light-1: var(--vt-c-indigo); /* texto escuro para fundo claro */
   --vt-c-text-light-2: rgba(60, 60, 60, 0.66);
-  --vt-c-text-dark-1: var(--vt-c-white);
-  --vt-c-text-dark-2: rgba(235, 235, 235, 0.64);
+  --vt-c-text-dark-1: #ffffff;             /* texto claro para fundo escuro */
+  --vt-c-text-dark-2: rgba(255, 255, 255, 0.7);
 }
 
 /* semantic color variables for this project */
@@ -45,8 +45,8 @@
     --color-border: var(--vt-c-divider-dark-2);
     --color-border-hover: var(--vt-c-divider-dark-1);
 
-    --color-heading: var(--vt-c-text-dark-1);
-    --color-text: var(--vt-c-text-dark-2);
+    --color-heading: var(--vt-c-text-dark-1); /* texto claro */
+    --color-text: var(--vt-c-text-dark-1);    /* texto claro */
   }
 }
 
